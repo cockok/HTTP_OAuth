@@ -2,6 +2,8 @@
 /**
  * HTTP_OAuth_Store_CacheLite 
  * 
+ * PHP Version 5.0.0
+ * 
  * @uses      HTTP_OAuth_Store_Consumer_Interface
  * @category  HTTP
  * @package   HTTP_OAuth
@@ -28,8 +30,8 @@ require_once 'Cache/Lite.php';
  */
 class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
 {
-    const TYPE_REQUEST = 'requestTokens';
-    const TYPE_ACESS   = 'accessTokens';
+    const TYPE_REQUEST           = 'requestTokens';
+    const TYPE_ACESS             = 'accessTokens';
     const REQUEST_TOKEN_LIFETIME = 300;
 
     /**
@@ -64,6 +66,16 @@ class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
         $this->cache = new Cache_Lite($options);
     }
 
+    /**
+     * Sets a request token
+     * 
+     * @param string $token        The request token
+     * @param string $tokenSecret  The request token secret
+     * @param string $providerName The name of the provider (i.e. 'twitter')
+     * @param string $sessionID    A string representing this user's session
+     * 
+     * @return true on success, false or PEAR_Error on failure
+     */
     public function setRequestToken($token, $tokenSecret, $providerName, $sessionID)
     {
         $this->setOptions(self::TYPE_REQUEST, self::REQUEST_TOKEN_LIFETIME);
@@ -79,30 +91,95 @@ class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
                                                                     $sessionID));
     }
 
+    /**
+     * Gets a request token as an array of the token, tokenSecret, providerName,
+     * and sessionID (array key names)
+     * 
+     * @param string $providerName The provider name (i.e. 'twitter')
+     * @param string $sessionID    A string representing this user's session
+     * 
+     * @return array on success, false on failure
+     */
     public function getRequestToken($providerName, $sessionID)
     {
         $this->setOptions(self::TYPE_REQUEST, self::REQUEST_TOKEN_LIFETIME);
-        return unserialize($this->cache->get($this->consumerGetRequestTokenKey($providerName, $sessionID)));
+        $result = $this->cache->get($this->consumerGetRequestTokenKey($providerName,
+                                                                      $sessionID));
+        return unserialize($result);
     }
 
+    /**
+     * Gets a cache key for request tokens.  It's an md5 hash of the provider name
+     * and sessionID
+     * 
+     * @param string $providerName The provider name (i.e. 'twitter')
+     * @param string $sessionID    A string representing this user's session
+     * 
+     * @return string
+     */
     protected function getRequestTokeKey($providerName, $sessionID)
     {
         return md5($providerName . ':' . $sessionID);
     }
 
+    /**
+     * Gets access token data in the form of an HTTP_OAuth_Store_Data object
+     * 
+     * @param string $consumerUserID The end user's ID at the consumer
+     * @param string $providerName   The provider name (i.e. 'twitter')
+     * 
+     * @return HTTP_OAuth_Data_Store
+     */
     public function getAccessToken($consumerUserID, $providerName)
     {
         $this->setOptions(self::TYPE_ACCESS);
+        $result = $this->cache->get($this->getAccessTokenKey($consumerUserID,
+                                                             $sessionID));
+        return unserialize($result);
     }
 
+    /**
+     * Sets access token data from an HTTP_OAuth_Store_Data object
+     * 
+     * @param HTTP_OAuth_Store_Data $data The access token data
+     * 
+     * @return bool true on success, false or PEAR_Error on failure
+     */
     public function setAccessToken(HTTP_OAuth_Store_Data $data)
     {
         $this->setOptions(self::TYPE_ACCESS);
+
+        $key = $this->getAccessTokenKey($data->consumerUserID, $data->providerName);
+        return $this->cache->save(serialize($data), $key);
     }
 
+    /**
+     * Removes an access token
+     * 
+     * @param HTTP_OAuth_Store_Data $data The access token data
+     * 
+     * @return bool true on success, false or PEAR_Error on failure
+     */
     public function removeAccessToken(HTTP_OAuth_Store_Data $data)
     {
         $this->setOptions(self::TYPE_ACCESS);
+
+        $key = $this->getAccessTokenKey($data->consumerUserID, $data->providerName);
+        return $this->cache->save(serialize($data), $key);
+    }
+
+    /**
+     * Gets an access token key for storage, based on the consumer user ID and the
+     * provider name
+     * 
+     * @param string $consumerUserID The end user's ID at the consumer
+     * @param string $providerName   The provider name (i.e. 'twitter')
+     * 
+     * @return void
+     */
+    protected function getAccessTokenKey($consumerUserID, $providerName)
+    {
+        return md5($consumerUserID . ':' . $providerName);
     }
 
     /**
