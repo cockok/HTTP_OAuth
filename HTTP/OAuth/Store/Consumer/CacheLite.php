@@ -28,10 +28,10 @@ require_once 'Cache/Lite.php';
  * @license   http://www.opensource.org/licenses/bsd-license.php FreeBSD
  * @link      http://pear.php.net/http_oauth
  */
-class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
+class HTTP_OAuth_Store_Consumer_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
 {
     const TYPE_REQUEST           = 'requestTokens';
-    const TYPE_ACESS             = 'accessTokens';
+    const TYPE_ACCESS            = 'accessTokens';
     const REQUEST_TOKEN_LIFETIME = 300;
 
     /**
@@ -87,8 +87,8 @@ class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
         );
 
         return $this->cache->save(serialize($data),
-                                  $this->consumerGetRequestTokenKey($providerName,
-                                                                    $sessionID));
+                                  $this->getRequestTokenKey($providerName,
+                                                            $sessionID));
     }
 
     /**
@@ -103,8 +103,8 @@ class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
     public function getRequestToken($providerName, $sessionID)
     {
         $this->setOptions(self::TYPE_REQUEST, self::REQUEST_TOKEN_LIFETIME);
-        $result = $this->cache->get($this->consumerGetRequestTokenKey($providerName,
-                                                                      $sessionID));
+        $result = $this->cache->get($this->getRequestTokenKey($providerName,
+                                                              $sessionID));
         return unserialize($result);
     }
 
@@ -117,7 +117,7 @@ class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
      * 
      * @return string
      */
-    protected function getRequestTokeKey($providerName, $sessionID)
+    protected function getRequestTokenKey($providerName, $sessionID)
     {
         return md5($providerName . ':' . $sessionID);
     }
@@ -134,7 +134,7 @@ class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
     {
         $this->setOptions(self::TYPE_ACCESS);
         $result = $this->cache->get($this->getAccessTokenKey($consumerUserID,
-                                                             $sessionID));
+                                                             $providerName));
         return unserialize($result);
     }
 
@@ -194,7 +194,7 @@ class HTTP_OAuth_Store_CacheLite implements HTTP_OAuth_Store_Consumer_Interface
     protected function setOptions($key, $expire = null)
     {
         $cacheDir  = $this->defaultOptions['cacheDir'] . '/oauth/';
-        $cacheDir .= rtrim($this->storeDirectories[$key], '/') . '/';
+        $cacheDir .= rtrim($key, '/') . '/';
 
         $this->ensureDirectoryExists($cacheDir);
 
