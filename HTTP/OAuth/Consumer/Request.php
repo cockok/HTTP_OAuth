@@ -277,6 +277,7 @@ class HTTP_OAuth_Consumer_Request extends HTTP_OAuth_Message
             }
             break;
         case 'GET':
+        case 'DELETE':
             $url = $this->getUrl();
             foreach ($this->getParameters() as $name => $value) {
                 if (substr($name, 0, 6) == 'oauth_') {
